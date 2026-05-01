@@ -17,7 +17,6 @@ class Settings(BaseSettings):
     # GitLab
     GITLAB_TOKEN: SecretStr
     GITLAB_URL: str = "https://gitlab.com"
-    GITLAB_NAMESPACE: str
     GITLAB_NAMESPACE_ID: int
 
     # Mirrors

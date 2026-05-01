@@ -43,7 +43,6 @@ Depois preencha as variáveis:
 | `GITHUB_TOKEN` | Token usado para consultar a API e clonar repositórios do GitHub. |
 | `GITLAB_TOKEN` | Token usado para autenticar no GitLab, criar projetos e enviar mirrors. |
 | `GITLAB_URL` | URL da instância GitLab. O padrão é `https://gitlab.com`. |
-| `GITLAB_NAMESPACE` | Caminho do namespace de destino no GitLab. |
 | `GITLAB_NAMESPACE_ID` | ID numérico do namespace de destino no GitLab. |
 | `MIRRORS_INCLUDE_FORKS` | Define se forks também serão espelhados. |
 | `MIRRORS_INCLUDE_ARCHIVED` | Define se repositórios arquivados também serão espelhados. |
@@ -93,11 +92,15 @@ Crie um personal access token no GitLab:
      --mirror`.
 5. Gere o token e copie o valor para `GITLAB_TOKEN`.
 
-A conta dona do token também precisa ter permissão no namespace definido em
-`GITLAB_NAMESPACE` ou `GITLAB_NAMESPACE_ID` para criar projetos e fazer push nos
-projetos criados. Em grupos do GitLab, isso normalmente significa ser `Owner` ou
-`Maintainer`, ou ter uma configuração do grupo que permita criação de projetos
-por membros.
+Preencha `GITLAB_NAMESPACE_ID` com o ID numérico do usuário ou grupo onde os
+projetos espelhados serão criados. Para encontrar esse valor no GitLab, abra a
+página do usuário ou grupo de destino; o ID aparece nos detalhes do namespace.
+Em grupos, ele também aparece em `Settings > General`.
+
+A conta dona do token precisa ter permissão nesse namespace para criar projetos e
+fazer push nos projetos criados. Em grupos do GitLab, isso normalmente significa
+ser `Owner` ou `Maintainer`, ou ter uma configuração do grupo que permita criação
+de projetos por membros.
 
 Exemplo de agendamento para rodar toda segunda-feira à meia-noite:
 

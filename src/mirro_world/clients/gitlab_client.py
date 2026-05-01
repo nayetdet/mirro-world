@@ -1,5 +1,3 @@
-import gitlab
-from typing import List
 from gitlab import Gitlab
 from github.Repository import Repository
 from gitlab.v4.objects import Namespace, Project
@@ -12,17 +10,7 @@ class GitlabClient:
         self.__client.auth()
 
     def get_namespace(self) -> Namespace:
-        if settings.GITLAB_NAMESPACE_ID:
-            return self.__client.namespaces.get(settings.GITLAB_NAMESPACE_ID)
-
-        gitlab_namespace_path: str = settings.GITLAB_NAMESPACE.strip()
-        try: return self.__client.namespaces.get(gitlab_namespace_path)
-        except gitlab.exceptions.GitlabGetError:
-            gitlab_namespaces: List[Namespace] = self.__client.namespaces.list(search=gitlab_namespace_path.rsplit("/", maxsplit=1)[-1], get_all=True)
-            for gitlab_namespace in gitlab_namespaces:
-                if gitlab_namespace.full_path == gitlab_namespace_path:
-                    return gitlab_namespace
-            raise RuntimeError(f"GitLab namespace not found: {gitlab_namespace_path}")
+        return self.__client.namespaces.get(settings.GITLAB_NAMESPACE_ID)
 
     def get_project(self, github_repository: Repository, gitlab_project_path: str, gitlab_namespace: Namespace) -> Project:
         try:
