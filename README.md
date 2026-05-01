@@ -1,4 +1,4 @@
-# Mirro World
+# Mirro-World
 
 Projeto que mantém repositórios do GitHub espelhados no GitLab de forma automática.
 
@@ -47,6 +47,57 @@ Depois preencha as variáveis:
 | `GITLAB_NAMESPACE_ID` | ID numérico do namespace de destino no GitLab. |
 | `MIRRORS_INCLUDE_FORKS` | Define se forks também serão espelhados. |
 | `MIRRORS_INCLUDE_ARCHIVED` | Define se repositórios arquivados também serão espelhados. |
+
+### Tokens
+
+Crie tokens separados para GitHub e GitLab. Salve o valor exibido na criação,
+porque os serviços normalmente não mostram o token novamente depois que a tela é
+fechada.
+
+#### GitHub
+
+Use um fine-grained personal access token sempre que possível:
+
+1. Acesse `GitHub > Settings > Developer settings > Personal access tokens >
+   Fine-grained tokens`.
+2. Clique em `Generate new token`.
+3. Em `Resource owner`, selecione o usuário dono dos repositórios.
+4. Em `Repository access`, escolha:
+   - `All repositories`, para espelhar todos os repositórios próprios.
+   - `Only select repositories`, para limitar o mirror a uma lista específica.
+5. Em `Repository permissions`, conceda:
+   - `Contents: Read-only`, necessário para clonar os repositórios por HTTPS.
+   - `Metadata: Read-only`, normalmente obrigatório e usado para consultar os
+     metadados dos repositórios.
+6. Gere o token e copie o valor para `GITHUB_TOKEN`.
+
+Se usar um classic personal access token:
+
+- Para espelhar repositórios privados, use o escopo `repo`.
+- Para espelhar apenas repositórios públicos, `public_repo` é suficiente.
+
+O token do GitHub não precisa de permissão de escrita, porque este projeto só lê
+e clona os repositórios de origem.
+
+#### GitLab
+
+Crie um personal access token no GitLab:
+
+1. Acesse `GitLab > Preferences > Access tokens`.
+2. Informe um nome, por exemplo `mirro-world`.
+3. Defina uma data de expiração compatível com sua política de segurança.
+4. Marque os escopos:
+   - `api`, necessário para autenticar na API, localizar o namespace e criar
+     projetos.
+   - `write_repository`, necessário para enviar o mirror com `git push
+     --mirror`.
+5. Gere o token e copie o valor para `GITLAB_TOKEN`.
+
+A conta dona do token também precisa ter permissão no namespace definido em
+`GITLAB_NAMESPACE` ou `GITLAB_NAMESPACE_ID` para criar projetos e fazer push nos
+projetos criados. Em grupos do GitLab, isso normalmente significa ser `Owner` ou
+`Maintainer`, ou ter uma configuração do grupo que permita criação de projetos
+por membros.
 
 Exemplo de agendamento para rodar toda segunda-feira à meia-noite:
 
