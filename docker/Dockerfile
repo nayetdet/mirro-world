@@ -30,4 +30,4 @@ COPY --from=build /app/src /app/src
 
 WORKDIR /app
 VOLUME ["/app/.mirrors"]
-CMD ["python", "-m", "mirro-world"]
+CMD ["python", "-m", "mirro_world"]
