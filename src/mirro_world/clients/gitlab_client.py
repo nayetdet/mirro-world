@@ -1,4 +1,5 @@
 from gitlab import Gitlab
+from gitlab.exceptions import GitlabGetError
 from github.Repository import Repository
 from gitlab.v4.objects import Namespace, Project
 from loguru import logger
@@ -18,7 +19,7 @@ class GitlabClient:
             gitlab_project: Project = self.__client.projects.get(gitlab_project_full_path)
             logger.info("GitLab project already exists: {}", gitlab_project.path_with_namespace)
             return gitlab_project
-        except gitlab.exceptions.GitlabGetError as error:
+        except GitlabGetError as error:
             if error.response_code != 404:
                 raise
         return self.create_project(github_repository, gitlab_project_path, gitlab_namespace)
