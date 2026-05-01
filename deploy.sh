@@ -38,11 +38,11 @@ if [ "$(docker info --format '{{.Swarm.LocalNodeState}}')" != "active" ]; then
   docker swarm init
 fi
 
-mkdir -p .mirrors
+mkdir -p data
 docker stack deploy \
   --prune \
   --detach \
   --with-registry-auth \
   --resolve-image always \
-  --compose-file "${COMPOSE_FILE}" \
+  --compose-file <(docker compose config | sed -E '/^name:/d; /profiles:/,+1d; s/(size|published): "([0-9]+)"/\1: \2/') \
   mirro-world
