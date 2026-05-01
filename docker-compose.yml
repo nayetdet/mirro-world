@@ -1,0 +1,42 @@
+services:
+  mirro-world:
+    image: ghcr.io/nayetdet/mirro-world:latest
+    init: true
+    deploy:
+      mode: replicated
+      replicas: 0
+      labels:
+        - swarm.cronjob.enable=true
+        - swarm.cronjob.schedule=${CRON?err}
+        - swarm.cronjob.skip-running=true
+        - swarm.cronjob.registry-auth=true
+        - swarm.cronjob.query-registry=true
+      restart_policy:
+        condition: none
+    volumes:
+      - type: bind
+        source: ./data
+        target: /app/data
+    environment:
+      TZ: ${TZ}
+      GITHUB_USERNAME: ${GITLAB_USERNAME}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      GITLAB_TOKEN: ${GITLAB_TOKEN}
+      GITLAB_URL: ${GITLAB_URL}
+      GITLAB_NAMESPACE: ${GITLAB_NAMESPACE}
+      GITLAB_NAMESPACE_ID: ${GITLAB_NAMESPACE_ID}
+      MIRRORS_INCLUDE_FORKS: ${MIRRORS_INCLUDE_FORKS}
+      MIRRORS_INCLUDE_ARCHIVED: ${MIRRORS_INCLUDE_ARCHIVED}
+
+  mirro-world-swarm-cronjob:
+    image: ghcr.io/crazy-max/swarm-cronjob:latest
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+    environment:
+      TZ: ${TZ}

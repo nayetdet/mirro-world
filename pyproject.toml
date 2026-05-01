@@ -1,0 +1,23 @@
+[project]
+name = "mirro-world"
+version = "1.0.0"
+description = "Projeto que mantém repositórios do GitHub espelhados no GitLab de forma automática."
+readme = "README.md"
+license = "GPL-3.0-or-later"
+requires-python = ">=3.14"
+authors = [
+    { name = "nayetdet", email = "jpmoreiracampos21@gmail.com" }
+]
+dependencies = [
+    "gitpython>=3.1.45",
+    "loguru>=0.7.3",
+    "pydantic>=2.12.0",
+    "pydantic-settings>=2.11.0",
+    "pygithub>=2.8.0",
+    "python-slugify>=8.0.4",
+    "python-gitlab>=6.4.0",
+    "yarl>=1.22.0",
+]
+
+[tool.uv]
+package = true
