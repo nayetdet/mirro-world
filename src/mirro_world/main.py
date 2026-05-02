@@ -38,6 +38,8 @@ def main() -> None:
             failed += 1
             logger.error("Skipping {} after failure: {}", source_repo.full_name, " | ".join(str(error).splitlines()))
     logger.info("Mirroring finished: {} total, {} succeeded, {} failed.", len(source_repos), succeeded, failed)
+    if failed > 0:
+        raise SystemExit(1)
 
 if __name__ == "__main__":
     setup_logging()
