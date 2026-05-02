@@ -5,12 +5,17 @@ Projeto que mantém repositórios do GitHub espelhados no GitLab de forma autom�
 ## Recursos
 
 - Lista repositórios próprios do GitHub via API.
+- Processa repositórios em ordem crescente de último push, deixando os mais
+  recentes por último.
 - Permite incluir ou ignorar forks.
 - Permite incluir ou ignorar repositórios arquivados.
 - Cria projetos no GitLab automaticamente, preservando a visibilidade pública ou
   privada do repositório de origem.
+- Evita sobrescrever projetos GitLab existentes quando as refs não batem com o
+  mirror esperado.
 - Mantém clones bare locais em `data/mirrors` para acelerar sincronizações
   futuras.
+- Continua processando os demais repositórios quando um mirror individual falha.
 - Registra logs de execução em `data/logs`.
 - Pode rodar localmente com `uv` ou como serviço agendado em Docker Swarm.
 
@@ -46,6 +51,7 @@ Depois preencha as variáveis:
 | `GITLAB_NAMESPACE_ID` | ID numérico do namespace de destino no GitLab. |
 | `MIRRORS_INCLUDE_FORKS` | Define se forks também serão espelhados. |
 | `MIRRORS_INCLUDE_ARCHIVED` | Define se repositórios arquivados também serão espelhados. |
+| `MIRRORS_OVERRIDE` | Desativa a checagem de segurança das refs do GitLab e força a sobrescrita do destino. O padrão é `false`. Use com extremo cuidado. |
 
 ### Tokens
 
@@ -137,8 +143,31 @@ aplicação:
 2. Busca os repositórios próprios no GitHub.
 3. Resolve o namespace configurado no GitLab.
 4. Cria o projeto de destino quando necessário.
-5. Clona ou atualiza o mirror local em `data/mirrors`.
-6. Envia o mirror para o GitLab com `git push --mirror`.
+5. Se o projeto já existir no GitLab, só continua quando ele estiver vazio ou
+   quando suas refs baterem com o mirror esperado.
+6. Clona ou atualiza o mirror local em `data/mirrors`.
+7. Envia o mirror para o GitLab com `git push --mirror`.
+
+Para evitar sobrescrita acidental, um projeto GitLab não vazio só é aceito se
+suas refs forem iguais ao último clone local mantido em `data/mirrors`. Isso
+permite atualizar o GitLab depois de um `git push --force` no GitHub, porque o
+GitLab ainda estará igual ao último mirror conhecido antes da atualização. Em
+uma instalação nova, quando ainda não existe clone local, o projeto GitLab só é
+aceito se suas refs já forem iguais às refs atuais do GitHub.
+
+### Override de segurança
+
+`MIRRORS_OVERRIDE=false` é o padrão e deve continuar assim na operação normal.
+
+`MIRRORS_OVERRIDE=true` ignora a proteção de refs e envia `git push --mirror`
+mesmo quando o projeto GitLab não parece ser o mirror esperado. Essa configuração
+é extremamente perigosa: ela pode apagar, mover ou sobrescrever branches e tags
+de um projeto GitLab totalmente diferente que tenha o mesmo nome. Na prática, é
+uma confirmação de que você aceita substituir o conteúdo do destino pelo estado
+do GitHub.
+
+Ative `MIRRORS_OVERRIDE=true` apenas temporariamente, em uma execução controlada,
+e volte para `false` assim que terminar.
 
 Os logs ficam em:
 

@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from gitlab import Gitlab
 from gitlab.exceptions import GitlabGetError
 from github.Repository import Repository
@@ -13,24 +14,24 @@ class GitlabClient:
     def get_namespace(self) -> Namespace:
         return self.__client.namespaces.get(settings.GITLAB_NAMESPACE_ID)
 
-    def get_project(self, github_repository: Repository, gitlab_project_path: str, gitlab_namespace: Namespace) -> Project:
+    def get_project(self, path: str, source_repo: Repository, namespace: Namespace) -> Project:
         try:
-            gitlab_project_full_path: str = f"{gitlab_namespace.full_path}/{gitlab_project_path}"
-            gitlab_project: Project = self.__client.projects.get(gitlab_project_full_path)
-            logger.info("GitLab project already exists: {}", gitlab_project.path_with_namespace)
-            return gitlab_project
+            project_full_path: str = f"{namespace.full_path}/{path}"
+            project: Project = self.__client.projects.get(project_full_path)
+            logger.info("GitLab project already exists: {}", project.path_with_namespace)
+            return project
         except GitlabGetError as error:
-            if error.response_code != 404:
+            if error.response_code != HTTPStatus.NOT_FOUND:
                 raise
-        return self.create_project(github_repository, gitlab_project_path, gitlab_namespace)
+        return self.create_project(path, source_repo, namespace)
 
-    def create_project(self, github_repository: Repository, gitlab_project_path: str, gitlab_namespace: Namespace) -> Project:
+    def create_project(self, path: str, source_repo: Repository, namespace: Namespace) -> Project:
         logger.info("Creating GitLab project...")
         return self.__client.projects.create(
             {
-                "name": github_repository.name,
-                "path": gitlab_project_path,
-                "visibility": "private" if github_repository.private else "public",
-                "namespace_id": gitlab_namespace.id
+                "name": source_repo.name,
+                "path": path,
+                "visibility": "private" if source_repo.private else "public",
+                "namespace_id": namespace.id
             }
         )

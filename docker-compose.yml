@@ -26,6 +26,7 @@ services:
       GITLAB_NAMESPACE_ID: ${GITLAB_NAMESPACE_ID:?err}
       MIRRORS_INCLUDE_FORKS: ${MIRRORS_INCLUDE_FORKS}
       MIRRORS_INCLUDE_ARCHIVED: ${MIRRORS_INCLUDE_ARCHIVED}
+      MIRRORS_OVERRIDE: ${MIRRORS_OVERRIDE:-false}
 
   mirro-world-swarm-cronjob:
     image: ghcr.io/crazy-max/swarm-cronjob:latest

@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     # Mirrors
     MIRRORS_INCLUDE_FORKS: bool = True
     MIRRORS_INCLUDE_ARCHIVED: bool = True
+    MIRRORS_OVERRIDE: bool = False
 
     # Paths
     ROOT_PATH: Path = Path(__file__).resolve().parents[2]
