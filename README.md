@@ -148,6 +148,12 @@ aplicação:
 6. Clona ou atualiza o mirror local em `data/mirrors`.
 7. Envia o mirror para o GitLab com `git push --mirror`.
 
+Se o push falhar por causa de branches protegidas no GitLab, o processo só
+tenta forçar o envio quando `MIRRORS_OVERRIDE=true`. Nesse modo, ele habilita
+`allow_force_push` nas protected branches do projeto e repete o envio uma vez.
+Sem `MIRRORS_OVERRIDE`, o push é recusado. Isso evita sobrescrita acidental e
+deixa o comportamento explícito no ambiente de execução.
+
 Para evitar sobrescrita acidental, um projeto GitLab não vazio só é aceito se
 suas refs forem iguais ao último clone local mantido em `data/mirrors`. Isso
 permite atualizar o GitLab depois de um `git push --force` no GitHub, porque o
@@ -159,12 +165,12 @@ aceito se suas refs já forem iguais às refs atuais do GitHub.
 
 `MIRRORS_OVERRIDE=false` é o padrão e deve continuar assim na operação normal.
 
-`MIRRORS_OVERRIDE=true` ignora a proteção de refs e envia `git push --mirror`
-mesmo quando o projeto GitLab não parece ser o mirror esperado. Essa configuração
-é extremamente perigosa: ela pode apagar, mover ou sobrescrever branches e tags
-de um projeto GitLab totalmente diferente que tenha o mesmo nome. Na prática, é
-uma confirmação de que você aceita substituir o conteúdo do destino pelo estado
-do GitHub.
+`MIRRORS_OVERRIDE=true` ignora a proteção de refs e também permite tentar o
+`git push --mirror` mesmo quando o projeto GitLab usa branches protegidas. Essa
+configuração é extremamente perigosa: ela pode apagar, mover ou sobrescrever
+branches e tags de um projeto GitLab totalmente diferente que tenha o mesmo
+nome. Na prática, é uma confirmação de que você aceita substituir o conteúdo do
+destino pelo estado do GitHub.
 
 Ative `MIRRORS_OVERRIDE=true` apenas temporariamente, em uma execução controlada,
 e volte para `false` assim que terminar.

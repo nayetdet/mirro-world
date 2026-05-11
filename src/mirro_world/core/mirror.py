@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Dict
 from git import Repo
+from git.exc import GitCommandError
 from github.Repository import Repository
 from gitlab.v4.objects import Project
 from loguru import logger
@@ -34,8 +35,30 @@ class Mirror:
         )
 
         local_repo: Repo = cls.clone_or_update(local_repo_path, source_url=str(source_url))
+        cls.push_mirror(local_repo, target_project, str(target_url))
+
+    @staticmethod
+    def push_mirror(local_repo: Repo, target_project: Project, target_url: str) -> None:
         logger.info("Pushing mirror to GitLab...")
-        local_repo.git.push("--mirror", str(target_url))
+        try: local_repo.git.push("--mirror", target_url)
+        except GitCommandError as e:
+            stderr: str = f"{getattr(e, 'stderr', '')} {e}".lower()
+            if "protected branch" not in stderr or "force push" not in stderr:
+                raise
+
+            if not settings.MIRRORS_OVERRIDE:
+                raise RuntimeError(f"Refusing to force push {target_project.path_with_namespace} because MIRRORS_OVERRIDE is disabled.") from e
+
+            logger.warning("Mirror push was blocked by protected branches in {}. MIRRORS_OVERRIDE is enabled, retrying once.", target_project.path_with_namespace)
+            for protected_branch in target_project.protectedbranches.list(get_all=True):
+                if getattr(protected_branch, "allow_force_push", False):
+                    continue
+
+                protected_branch.allow_force_push = True
+                protected_branch.save()
+
+            logger.info("Enabled force push on protected branches in {} because MIRRORS_OVERRIDE is enabled.", target_project.path_with_namespace)
+            local_repo.git.push("--mirror", str(target_url))
 
     @staticmethod
     def clone_or_update(local_repo_path: Path, source_url: str) -> Repo:
