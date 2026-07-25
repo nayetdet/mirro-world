@@ -176,6 +176,18 @@ The CI workflow publishes the image to GitHub Container Registry:
 ghcr.io/nayetdet/mirro-world:latest
 ```
 
+The Helm chart is also published to the GitHub Container Registry as an OCI
+artifact. Install the chart with:
+
+```bash
+helm install mirro-world oci://ghcr.io/nayetdet/helm-charts/mirro-world \
+  --version 0.1.0
+```
+
+The chart workflow runs when files under `k8s/mirro-world/` change on `main` or
+when it is started manually from GitHub Actions. Update `version` in
+`k8s/mirro-world/Chart.yaml` before publishing a new release.
+
 The `docker-compose.yml` file is prepared for Docker Swarm using
 `crazy-max/swarm-cronjob`. The main service starts with `replicas: 0`; the
 cronjob creates executions according to the `CRON` expression.
