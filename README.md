@@ -168,48 +168,77 @@ Logs are stored in:
 data/logs/
 ```
 
-## Docker
+## Deploy
 
-The CI workflow publishes the image to GitHub Container Registry:
+There are two supported deployment options: Docker Compose with Docker Swarm,
+or Kubernetes with Helm.
+
+### Docker Compose / Swarm
+
+The image is published to GitHub Container Registry:
 
 ```text
 ghcr.io/nayetdet/mirro-world:latest
 ```
 
-The Helm chart is also published to the GitHub Container Registry as an OCI
-artifact. Install the chart with:
+The `docker-compose.yml` file runs the application as a scheduled Docker Swarm
+service using `crazy-max/swarm-cronjob`. The main service starts with
+`replicas: 0`; the cronjob creates executions according to `CRON`.
+
+Configure the environment and deploy:
 
 ```bash
-helm install mirro-world oci://ghcr.io/nayetdet/helm-charts/mirro-world \
-  --version 0.1.0
-```
-
-The chart workflow runs when files under `k8s/mirro-world/` change on `main` or
-when it is started manually from GitHub Actions. Update `version` in
-`k8s/mirro-world/Chart.yaml` before publishing a new release.
-
-The `docker-compose.yml` file is prepared for Docker Swarm using
-`crazy-max/swarm-cronjob`. The main service starts with `replicas: 0`; the
-cronjob creates executions according to the `CRON` expression.
-
-Deploy with:
-
-```bash
+cp .env.example .env
 ./deploy.sh
 ```
 
 Custom Compose and environment files can also be provided:
 
 ```bash
-./deploy.sh --docker-compose docker-compose.yml --env-file .env
+./deploy.sh \
+  --docker-compose docker-compose.yml \
+  --env-file .env
 ```
 
-The script:
+The deployment script checks both files, initializes Docker Swarm when needed,
+and deploys the `mirro-world` stack.
 
-1. Checks that the Compose file exists.
-2. Checks that the environment file exists.
-3. Initializes Docker Swarm if it is not already active.
-4. Deploys the `mirro-world` stack.
+### Kubernetes / Helm
+
+The chart is published to the GitHub Container Registry as an OCI artifact:
+
+```text
+oci://ghcr.io/nayetdet/charts/mirro-world
+```
+
+Install a chart version with:
+
+```bash
+helm install mirro-world oci://ghcr.io/nayetdet/charts/mirro-world \
+  --version 0.1.0 \
+  --namespace mirro-world \
+  --create-namespace
+```
+
+The chart creates the CronJob, PersistentVolumeClaim, and ExternalSecret used
+by the application. Configure the deployment by creating a values file and
+passing it with `--values`, for example:
+
+```bash
+helm upgrade --install mirro-world \
+  oci://ghcr.io/nayetdet/charts/mirro-world \
+  --version 0.1.0 \
+  --namespace mirro-world \
+  --create-namespace \
+  --values values.production.yaml
+```
+
+The Helm workflow runs when files under `k8s/mirro-world/` change on `main` or
+when it is started manually. Increment `version` in
+`k8s/mirro-world/Chart.yaml` before publishing a new chart version.
+
+For a private GHCR package, configure the registry credentials in Argo CD or
+authenticate Helm with a GitHub token that has `read:packages`.
 
 ## Persistent data
 
@@ -234,12 +263,6 @@ src/mirro_world/
 ├── main.py       # Main workflow
 └── settings.py   # Environment-based configuration
 ```
-
-## CI
-
-The workflow in `.github/workflows/ci.yml` builds and publishes the Docker image
-to GitHub Container Registry when the `main` branch receives changes to source
-code, the Dockerfile, dependencies, or the workflow itself.
 
 ## License
 
