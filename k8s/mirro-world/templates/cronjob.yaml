@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mirro-world
+spec:
+  schedule: {{ .Values.schedule | quote }}
+  timeZone: {{ .Values.timeZone | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: mirro-world
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              env:
+                - name: TZ
+                  value: {{ .Values.timeZone | quote }}
+                - name: GITLAB_URL
+                  value: {{ .Values.config.gitlabUrl | quote }}
+                - name: MIRRORS_INCLUDE_FORKS
+                  value: {{ .Values.config.includeForks | quote }}
+                - name: MIRRORS_INCLUDE_ARCHIVED
+                  value: {{ .Values.config.includeArchived | quote }}
+                - name: MIRRORS_OVERRIDE
+                  value: {{ .Values.config.override | quote }}
+                {{- range $name := list "GITHUB_USERNAME" "GITHUB_TOKEN" "GITLAB_TOKEN" "GITLAB_NAMESPACE_ID" }}
+                - name: {{ $name }}
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $.Values.externalSecret.name }}
+                      key: {{ $name }}
+                {{- end }}
+              volumeMounts:
+                - name: data
+                  mountPath: /app/data
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: mirro-world

@@ -1,181 +1,168 @@
 # Mirro-World
 
-Projeto que mantém repositórios do GitHub espelhados no GitLab de forma automática.
+A tool for automatically mirroring GitHub repositories to GitLab.
 
-## Recursos
+## Features
 
-- Lista repositórios próprios do GitHub via API.
-- Processa repositórios em ordem crescente de último push, deixando os mais
-  recentes por último.
-- Permite incluir ou ignorar forks.
-- Permite incluir ou ignorar repositórios arquivados.
-- Cria projetos no GitLab automaticamente, preservando a visibilidade pública ou
-  privada do repositório de origem.
-- Evita sobrescrever projetos GitLab existentes quando as refs não batem com o
-  mirror esperado.
-- Mantém clones bare locais em `data/mirrors` para acelerar sincronizações
-  futuras.
-- Continua processando os demais repositórios quando um mirror individual falha.
-- Registra logs de execução em `data/logs`.
-- Pode rodar localmente com `uv` ou como serviço agendado em Docker Swarm.
+- Lists owned GitHub repositories through the API.
+- Processes repositories from the oldest to the most recently pushed.
+- Optionally includes forks and archived repositories.
+- Automatically creates GitLab projects while preserving the source visibility.
+- Prevents overwriting existing GitLab projects when their refs do not match the expected mirror.
+- Keeps local bare clones in `data/mirrors` to speed up future synchronizations.
+- Continues processing other repositories when an individual mirror fails.
+- Stores execution logs in `data/logs`.
+- Runs locally with `uv` or as a scheduled Docker Swarm service.
 
-## Requisitos
+## Requirements
 
 - Python 3.14+
-- `uv`
-- `git` disponível no `PATH`
-- Token do GitHub com acesso aos repositórios que serão espelhados
-- Token do GitLab com permissão para criar projetos e fazer push no namespace de
-  destino
+- `git` available in `PATH`
+- A GitHub token with access to the repositories to be mirrored
+- A GitLab token with permission to create projects and push to the target namespace
 
-Para deploy agendado, também é necessário Docker com Swarm habilitado.
+Scheduled deployments also require Docker Swarm to be enabled.
 
-## Configuração
+## Configuration
 
-Crie o arquivo `.env` a partir do exemplo:
+Create an `.env` file from the example:
 
 ```bash
 cp .env.example .env
 ```
 
-Depois preencha as variáveis:
+Then set the variables:
 
-| Variável | Descrição |
+| Variable | Description |
 | --- | --- |
-| `TZ` | Fuso horário usado pela aplicação e pelo agendador. |
-| `CRON` | Expressão cron usada pelo deploy em Docker Swarm. |
-| `GITHUB_USERNAME` | Nome do usuário GitHub dono dos repositórios. Mantido na configuração para identificação do ambiente. |
-| `GITHUB_TOKEN` | Token usado para consultar a API e clonar repositórios do GitHub. |
-| `GITLAB_TOKEN` | Token usado para autenticar no GitLab, criar projetos e enviar mirrors. |
-| `GITLAB_URL` | URL da instância GitLab. O padrão é `https://gitlab.com`. |
-| `GITLAB_NAMESPACE_ID` | ID numérico do namespace de destino no GitLab. |
-| `MIRRORS_INCLUDE_FORKS` | Define se forks também serão espelhados. |
-| `MIRRORS_INCLUDE_ARCHIVED` | Define se repositórios arquivados também serão espelhados. |
-| `MIRRORS_OVERRIDE` | Desativa a checagem de segurança das refs do GitLab e força a sobrescrita do destino. O padrão é `false`. Use com extremo cuidado. |
+| `TZ` | Time zone used by the application and scheduler. |
+| `CRON` | Cron expression used by the Docker Swarm deployment. |
+| `GITHUB_USERNAME` | GitHub username that owns the repositories. Kept for environment identification. |
+| `GITHUB_TOKEN` | Token used to query the GitHub API and clone repositories. |
+| `GITLAB_TOKEN` | Token used to authenticate with GitLab, create projects, and push mirrors. |
+| `GITLAB_URL` | GitLab instance URL. Defaults to `https://gitlab.com`. |
+| `GITLAB_NAMESPACE_ID` | Numeric ID of the target GitLab namespace. |
+| `MIRRORS_INCLUDE_FORKS` | Whether forks should also be mirrored. |
+| `MIRRORS_INCLUDE_ARCHIVED` | Whether archived repositories should also be mirrored. |
+| `MIRRORS_OVERRIDE` | Disables GitLab ref safety checks and forces the destination to be overwritten. Defaults to `false`; use with extreme caution. |
 
 ### Tokens
 
-Crie tokens separados para GitHub e GitLab. Salve o valor exibido na criação,
-porque os serviços normalmente não mostram o token novamente depois que a tela é
-fechada.
+Create separate tokens for GitHub and GitLab. Save each token when it is created,
+because these services usually do not display it again after the creation screen
+is closed.
 
 #### GitHub
 
-Use um fine-grained personal access token sempre que possível:
+Use a fine-grained personal access token whenever possible:
 
-1. Acesse `GitHub > Settings > Developer settings > Personal access tokens >
-   Fine-grained tokens`.
-2. Clique em `Generate new token`.
-3. Em `Resource owner`, selecione o usuário dono dos repositórios.
-4. Em `Repository access`, escolha:
-   - `All repositories`, para espelhar todos os repositórios próprios.
-   - `Only select repositories`, para limitar o mirror a uma lista específica.
-5. Em `Repository permissions`, conceda:
-   - `Contents: Read-only`, necessário para clonar os repositórios por HTTPS.
-   - `Metadata: Read-only`, normalmente obrigatório e usado para consultar os
-     metadados dos repositórios.
-6. Gere o token e copie o valor para `GITHUB_TOKEN`.
+1. Open `GitHub > Settings > Developer settings > Personal access tokens > Fine-grained tokens`.
+2. Click `Generate new token`.
+3. Select the repository owner under `Resource owner`.
+4. Under `Repository access`, choose either:
+   - `All repositories`, to mirror all owned repositories.
+   - `Only select repositories`, to limit the mirror to specific repositories.
+5. Grant these repository permissions:
+   - `Contents: Read-only`, required to clone repositories over HTTPS.
+   - `Metadata: Read-only`, usually required to query repository metadata.
+6. Generate the token and set its value as `GITHUB_TOKEN`.
 
-Se usar um classic personal access token:
+For a classic personal access token:
 
-- Para espelhar repositórios privados, use o escopo `repo`.
-- Para espelhar apenas repositórios públicos, `public_repo` é suficiente.
+- Use the `repo` scope for private repositories.
+- Use `public_repo` for public repositories only.
 
-O token do GitHub não precisa de permissão de escrita, porque este projeto só lê
-e clona os repositórios de origem.
+The GitHub token does not need write access because this project only reads and
+clones source repositories.
 
 #### GitLab
 
-Crie um personal access token no GitLab:
+Create a GitLab personal access token:
 
-1. Acesse `GitLab > Preferences > Access tokens`.
-2. Informe um nome, por exemplo `mirro-world`.
-3. Defina uma data de expiração compatível com sua política de segurança.
-4. Marque os escopos:
-   - `api`, necessário para autenticar na API, localizar o namespace e criar
-     projetos.
-   - `write_repository`, necessário para enviar o mirror com `git push
-     --mirror`.
-5. Gere o token e copie o valor para `GITLAB_TOKEN`.
+1. Open `GitLab > Preferences > Access tokens`.
+2. Enter a name, such as `mirro-world`.
+3. Set an expiration date that matches your security policy.
+4. Grant these scopes:
+   - `api`, required to authenticate with the API, locate the namespace, and create projects.
+   - `write_repository`, required to push mirrors with `git push --mirror`.
+5. Generate the token and set its value as `GITLAB_TOKEN`.
 
-Preencha `GITLAB_NAMESPACE_ID` com o ID numérico do usuário ou grupo onde os
-projetos espelhados serão criados. Para encontrar esse valor no GitLab, abra a
-página do usuário ou grupo de destino; o ID aparece nos detalhes do namespace.
-Em grupos, ele também aparece em `Settings > General`.
+Set `GITLAB_NAMESPACE_ID` to the numeric ID of the user or group where mirrored
+projects will be created. To find it, open the target user or group page in
+GitLab. The ID appears in the namespace details and, for groups, under
+`Settings > General`.
 
-A conta dona do token precisa ter permissão nesse namespace para criar projetos e
-fazer push nos projetos criados. Em grupos do GitLab, isso normalmente significa
-ser `Owner` ou `Maintainer`, ou ter uma configuração do grupo que permita criação
-de projetos por membros.
+The token owner must have permission to create projects and push to the target
+namespace. In GitLab groups, this usually means being an `Owner` or `Maintainer`,
+or using a group setting that allows members to create projects.
 
-Exemplo de agendamento para rodar toda segunda-feira à meia-noite:
+For example, to run every Monday at midnight:
 
 ```env
 CRON='0 0 * * 1'
 ```
 
-## Instalação local
+## Local installation
 
-Instale as dependências:
+Install the dependencies:
 
 ```bash
 make install
 ```
 
-Ou diretamente com `uv`:
+Or directly with `uv`:
 
 ```bash
 uv sync --all-groups --all-packages
 ```
 
-## Execução local
+## Local execution
 
-Com o `.env` configurado, rode:
+With `.env` configured, run:
 
 ```bash
 uv run python -m mirro_world.main
 ```
 
-O comando acima também inicializa o logging em arquivo. Durante a execução, a
-aplicação:
+The command also initializes file-based logging. During execution, the
+application:
 
-1. Valida se o `git` está instalado.
-2. Busca os repositórios próprios no GitHub.
-3. Resolve o namespace configurado no GitLab.
-4. Cria o projeto de destino quando necessário.
-5. Se o projeto já existir no GitLab, só continua quando ele estiver vazio ou
-   quando suas refs baterem com o mirror esperado.
-6. Clona ou atualiza o mirror local em `data/mirrors`.
-7. Envia o mirror para o GitLab com `git push --mirror`.
+1. Checks that `git` is installed.
+2. Fetches owned repositories from GitHub.
+3. Resolves the configured GitLab namespace.
+4. Creates the destination project when necessary.
+5. Continues only when an existing GitLab project is empty or its refs match the expected mirror.
+6. Clones or updates the local mirror in `data/mirrors`.
+7. Pushes the mirror to GitLab with `git push --mirror`.
 
-Se o push falhar por causa de branches protegidas no GitLab, o processo só
-tenta forçar o envio quando `MIRRORS_OVERRIDE=true`. Nesse modo, ele habilita
-`allow_force_push` nas protected branches do projeto e repete o envio uma vez.
-Sem `MIRRORS_OVERRIDE`, o push é recusado. Isso evita sobrescrita acidental e
-deixa o comportamento explícito no ambiente de execução.
+If a push fails because of protected GitLab branches, the application only tries
+to force the push when `MIRRORS_OVERRIDE=true`. In that mode, it enables
+`allow_force_push` on the project's protected branches and retries the push once.
+Without `MIRRORS_OVERRIDE`, the push is rejected. This prevents accidental
+overwrites and keeps the behavior explicit.
 
-Para evitar sobrescrita acidental, um projeto GitLab não vazio só é aceito se
-suas refs forem iguais ao último clone local mantido em `data/mirrors`. Isso
-permite atualizar o GitLab depois de um `git push --force` no GitHub, porque o
-GitLab ainda estará igual ao último mirror conhecido antes da atualização. Em
-uma instalação nova, quando ainda não existe clone local, o projeto GitLab só é
-aceito se suas refs já forem iguais às refs atuais do GitHub.
+To prevent accidental overwrites, a non-empty GitLab project is accepted only
+when its refs match the last local clone stored in `data/mirrors`. This allows
+GitLab to be updated after a `git push --force` on GitHub because GitLab still
+matches the last known mirror state. On a new installation, when no local clone
+exists yet, the GitLab project is accepted only when its refs match the current
+GitHub refs.
 
-### Override de segurança
+### Safety override
 
-`MIRRORS_OVERRIDE=false` é o padrão e deve continuar assim na operação normal.
+`MIRRORS_OVERRIDE=false` is the default and should remain enabled during normal
+operation.
 
-`MIRRORS_OVERRIDE=true` ignora a proteção de refs e também permite tentar o
-`git push --mirror` mesmo quando o projeto GitLab usa branches protegidas. Essa
-configuração é extremamente perigosa: ela pode apagar, mover ou sobrescrever
-branches e tags de um projeto GitLab totalmente diferente que tenha o mesmo
-nome. Na prática, é uma confirmação de que você aceita substituir o conteúdo do
-destino pelo estado do GitHub.
+`MIRRORS_OVERRIDE=true` bypasses ref protection and allows `git push --mirror` to
+be retried even when the GitLab project uses protected branches. This setting is
+extremely dangerous: it can delete, move, or overwrite branches and tags in a
+different GitLab project with the same name. In practice, it confirms that you
+accept replacing the destination with the GitHub state.
 
-Ative `MIRRORS_OVERRIDE=true` apenas temporariamente, em uma execução controlada,
-e volte para `false` assim que terminar.
+Enable `MIRRORS_OVERRIDE=true` only temporarily during a controlled run, then
+set it back to `false`.
 
-Os logs ficam em:
+Logs are stored in:
 
 ```text
 data/logs/
@@ -183,66 +170,66 @@ data/logs/
 
 ## Docker
 
-A imagem é publicada no GitHub Container Registry pelo workflow de CI:
+The CI workflow publishes the image to GitHub Container Registry:
 
 ```text
 ghcr.io/nayetdet/mirro-world:latest
 ```
 
-O `docker-compose.yml` foi preparado para Docker Swarm usando
-`crazy-max/swarm-cronjob`. O serviço principal começa com `replicas: 0`; o
-cronjob cria execuções conforme a expressão definida em `CRON`.
+The `docker-compose.yml` file is prepared for Docker Swarm using
+`crazy-max/swarm-cronjob`. The main service starts with `replicas: 0`; the
+cronjob creates executions according to the `CRON` expression.
 
-Faça o deploy:
+Deploy with:
 
 ```bash
 ./deploy.sh
 ```
 
-Também é possível informar arquivos customizados:
+Custom Compose and environment files can also be provided:
 
 ```bash
 ./deploy.sh --docker-compose docker-compose.yml --env-file .env
 ```
 
-O script:
+The script:
 
-1. Verifica se o arquivo Compose existe.
-2. Verifica se o arquivo de ambiente existe.
-3. Inicializa o Docker Swarm caso ele ainda não esteja ativo.
-4. Publica a stack `mirro-world`.
+1. Checks that the Compose file exists.
+2. Checks that the environment file exists.
+3. Initializes Docker Swarm if it is not already active.
+4. Deploys the `mirro-world` stack.
 
-## Dados persistidos
+## Persistent data
 
-Por padrão, a aplicação usa o diretório `data` na raiz do projeto:
+By default, the application uses the `data` directory at the project root:
 
 ```text
 data/
-├── logs/      # Arquivos de log por execução
-└── mirrors/   # Clones bare usados para sincronização incremental
+├── logs/      # Execution logs
+└── mirrors/   # Bare clones used for incremental synchronization
 ```
 
-Esse diretório não deve ser versionado.
+This directory should not be committed.
 
-## Estrutura
+## Structure
 
 ```text
 src/mirro_world/
-├── clients/      # Clientes GitHub e GitLab
-├── core/         # Lógica de sincronização do mirror
-├── logging.py    # Configuração de logs
-├── utils/        # Helpers para URLs e nomes de repositórios
-├── main.py       # Fluxo principal
-└── settings.py   # Configuração via variáveis de ambiente
+├── clients/      # GitHub and GitLab clients
+├── core/         # Mirror synchronization logic
+├── logging.py    # Logging configuration
+├── utils/        # URL and repository name helpers
+├── main.py       # Main workflow
+└── settings.py   # Environment-based configuration
 ```
 
 ## CI
 
-O workflow em `.github/workflows/ci.yml` constrói e publica a imagem Docker no
-GitHub Container Registry quando há push na branch `main` com mudanças em código,
-Dockerfile, dependências ou workflow.
+The workflow in `.github/workflows/ci.yml` builds and publishes the Docker image
+to GitHub Container Registry when the `main` branch receives changes to source
+code, the Dockerfile, dependencies, or the workflow itself.
 
-## Licença
+## License
 
-Este projeto está licenciado sob GPL-3.0-or-later. Consulte o arquivo
-[`LICENSE`](LICENSE) para mais detalhes.
+This project is licensed under GPL-3.0-or-later. See the [`LICENSE`](LICENSE)
+file for details.
