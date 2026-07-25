@@ -3,7 +3,7 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
-schedule: "0 0 * * 1"
+schedule: "0 0 * * *"
 timeZone: America/Fortaleza
 config:
   gitlabUrl: https://gitlab.com
