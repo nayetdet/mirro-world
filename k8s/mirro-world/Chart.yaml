@@ -1,6 +1,6 @@
 apiVersion: v2
 name: mirro-world
-description: A Helm chart for Kubernetes
+description: Mirro-World is an automated service that mirrors GitHub repositories to GitLab on a schedule, keeping projects synchronized with minimal manual effort.
 type: application
 version: 0.1.0
 appVersion: "latest"

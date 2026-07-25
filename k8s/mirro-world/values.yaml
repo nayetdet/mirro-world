@@ -11,9 +11,13 @@ config:
   includeArchived: true
   override: false
 
-externalSecret:
+secret:
+  enabled: false
   name: mirro-world
-  storeName: vault
+
+externalSecret:
+  enabled: true
+  storeName: ""
   refreshInterval: 1h
   remoteKey: mirro-world
 

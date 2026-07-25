@@ -1,6 +1,6 @@
 # Mirro-World
 
-A tool for automatically mirroring GitHub repositories to GitLab.
+Mirro-World is an automated service that mirrors GitHub repositories to GitLab on a schedule, keeping projects synchronized with minimal manual effort.
 
 ## Features
 
@@ -220,9 +220,11 @@ helm install mirro-world oci://ghcr.io/nayetdet/charts/mirro-world \
   --create-namespace
 ```
 
-The chart creates the CronJob, PersistentVolumeClaim, and ExternalSecret used
-by the application. Configure the deployment by creating a values file and
-passing it with `--values`, for example:
+The chart creates the CronJob and PersistentVolumeClaim used by the
+application. By default, it also creates an `ExternalSecret`; alternatively,
+you can point the CronJob at an existing Kubernetes `Secret`. Configure the
+deployment by creating a values file and passing it with `--values`, for
+example:
 
 ```bash
 helm upgrade --install mirro-world \
@@ -232,6 +234,28 @@ helm upgrade --install mirro-world \
   --create-namespace \
   --values values.production.yaml
 ```
+
+The consumed Secret name is configured with `secret.name`. Enable exactly one
+source:
+
+```yaml
+secret:
+  enabled: false
+  name: mirro-world
+
+externalSecret:
+  enabled: true
+  storeName: ""
+  refreshInterval: 1h
+  remoteKey: mirro-world
+```
+
+When `externalSecret.enabled` is `true`, replace the empty `storeName` with
+the name of the `ClusterSecretStore` to use.
+
+To use a Secret that already exists in the namespace, set
+`secret.enabled: true` and `externalSecret.enabled: false`. The chart only
+references that Secret; it does not create or modify it.
 
 The Helm workflow runs when files under `k8s/mirro-world/` change on `main` or
 when it is started manually. Increment `version` in
